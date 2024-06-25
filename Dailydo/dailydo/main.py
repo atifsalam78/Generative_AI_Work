@@ -1,9 +1,5 @@
 #poetry env info --path
-from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import SQLModel, Field, create_engine, Session, select
-from dailydo import setting
-from typing import Annotated
-from contextlib import asynccontextmanager
+
 
 """"
 Step-1: Create database on Noen
@@ -17,29 +13,20 @@ Step-8: Create context manager for app lifespan
 Step-9: Create all endpoints for todo app
 
 """
-# Create Model
-    # data model
-    # table model
-# Todo is a child class and will extend it's parent class SQLModel
-# This model will use for both data validation and table creation(data model & table model)
-class Todo(SQLModel, table=True):
-    id : int | None = Field(default=None, primary_key=True)
-    content : str = Field(index=True, min_length=3, max_length=54)
-    is_completed : bool = Field(default=False)
+from fastapi import FastAPI, Depends, HTTPException
+from sqlmodel import SQLModel, Field, create_engine, Session, select
+from dailydo import setting
+from typing import Annotated
+from contextlib import asynccontextmanager
+from dailydo.db import create_tables, get_session
+from dailydo.models import Todo, Token
+from dailydo.router import user
+from fastapi.security import OAuth2PasswordRequestForm
+from dailydo.auth import authenticate_user, create_access_token, EXPIRY_TIME
+from datetime import timedelta
 
-#engine is one for whole application
-connection_string : str = str(setting.DATABASE_URL).replace("postgresql", "postgresql+psycopg")
-engine = create_engine(connection_string, connect_args={"sslmode" : "require"}, pool_recycle=300, pool_size=10, echo=True)
-#by default pool size is 5 by sqlAlchemy, pool_recycle means destroy the connection after 300 seconds if not in use and create new
 
-def create_tables():
-    """To create tables in database"""
-    SQLModel.metadata.create_all(engine)
 
-def get_session():
-    """Session management for dpendency injection"""
-    with Session(engine) as session:
-        yield session
 
 @asynccontextmanager # by using this it's means when our app run this will execute first before any thing
 async def lifespan(app:FastAPI):
@@ -51,10 +38,25 @@ async def lifespan(app:FastAPI):
 
 app : FastAPI = FastAPI(lifespan=lifespan, title="Daily ToDo App", version="1.0.0")
 
+app.include_router(router=user.user_router)
+
 # End Points for Todo App
 @app.get("/")
 async def root():
     return {"message" : "Welcom to Daily Do App!"}
+
+
+#login
+@app.post("/token", response_model=Token)
+async def login(form_data:Annotated[OAuth2PasswordRequestForm, Depends()],
+                session:Annotated[Session, Depends(get_session)]):
+    user = authenticate_user(form_data.username, form_data.password, session)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    expire_time = timedelta(minutes=EXPIRY_TIME)
+    access_token = create_access_token({"sub":form_data.username}, expire_time)
+    return Token(access_token=access_token, token_type="bearer")
 
 
 @app.post("/todos/", response_model=Todo) # response_model is to use this as data model
