@@ -38,6 +38,7 @@ class Register_User(BaseModel):
 class Token(BaseModel):
     access_token:str
     token_type:str
+    refresh_token:str
     
 class TokenData(BaseModel):
     username : str
@@ -47,7 +48,9 @@ class Todo_Create(BaseModel):
     
 class Todo_Edit(BaseModel):
     content : str
-    is_completed : bool
+    is_completed : bool    
     
+class RefreshTokenData(BaseModel):
+    email:str
     
 
