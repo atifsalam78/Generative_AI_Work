@@ -2,14 +2,14 @@ from passlib.context import CryptContext
 from sqlmodel import Session, select
 from typing import Annotated
 from dailydo.db import get_session
-from fastapi import Depends
-from dailydo.models import User, Todo
+from fastapi import Depends, HTTPException, status
+from dailydo.models import User, Todo, TokenData
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from datetime import datetime, timezone, timedelta 
 
 
-SECRET_KEY = "ed607gasgdsagdasdgj343gretutgjc45i57y5c745yi457y4"
+SECRET_KEY = "86e5f2ae0be2c1e218d54fc9e1a26c672f5fe55401a272f232da6691ecc918ac"
 ALGORITHYM = "HS256"
 EXPIRY_TIME = 30
 
@@ -57,4 +57,26 @@ def create_access_token(data:dict, expiry_time:timedelta|None):
     data_to_encode.update({"exp":expire})
     encoded_jwt = jwt.encode(data_to_encode, SECRET_KEY, algorithm=ALGORITHYM)
     return encoded_jwt
+
+def current_user(token:Annotated[str, Depends(oauth_scheme)],
+                 session:Annotated[Session, Depends(get_session)]):
+    credential_exception = HTTPException(
+        status_code = status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid token, please login again",
+        headers={"www-Authenticate":"Bearer"}
+    )
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, ALGORITHYM)
+        username:str | None = payload.get("sub")
+        if username is None:
+            raise credential_exception
+        token_data = TokenData(username=username)
+        
+    except:
+        raise JWTError
+    user = get_user_from_db(session, username=token_data.username)
+    if not user:
+        raise credential_exception
+    return user
     

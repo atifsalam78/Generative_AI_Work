@@ -39,4 +39,15 @@ class Token(BaseModel):
     access_token:str
     token_type:str
     
+class TokenData(BaseModel):
+    username : str
+    
+class Todo_Create(BaseModel):
+    content : str = Field(index=True, min_length=3, max_length=54)
+    
+class Todo_Edit(BaseModel):
+    content : str
+    is_completed : bool
+    
+    
 

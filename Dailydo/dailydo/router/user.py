@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from dailydo.models import Register_User
 from typing import Annotated
-from dailydo.auth import hash_password, get_user_from_db, oauth_scheme
+from dailydo.auth import hash_password, get_user_from_db, oauth_scheme, current_user
 from dailydo.models import User, Register_User
 from sqlmodel import Session
 from dailydo.db import get_session
@@ -19,7 +19,7 @@ async def read_user():
 @user_router.post("/register")
 async def register_user(new_user : Annotated[Register_User, Depends()],
                         session:Annotated[Session, Depends(get_session)]):
-    db_user = get_user_form_db(session, new_user.username, new_user.email)
+    db_user = get_user_from_db(session, new_user.username)
     if db_user:
         raise HTTPException(status_code=409, details="User already available with these credentials")
     user = User(username = new_user.username,
@@ -30,9 +30,9 @@ async def register_user(new_user : Annotated[Register_User, Depends()],
     session.refresh(user)
     return {"message":f"User with {user.username} successfully registered"}
 
-# @user_router.get("/me")
-# async def user_profile(current_user:Annotated[User, Depends(oauth_scheme)]):
-#     return {"hello":"world"}
+@user_router.get("/me")
+async def user_profile(current_user:Annotated[User, Depends(current_user)]):
+    return current_user
 
 
 

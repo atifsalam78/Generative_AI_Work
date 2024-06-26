@@ -19,10 +19,10 @@ from dailydo import setting
 from typing import Annotated
 from contextlib import asynccontextmanager
 from dailydo.db import create_tables, get_session
-from dailydo.models import Todo, Token
+from dailydo.models import Todo, Token, User, Todo_Create, Todo_Edit
 from dailydo.router import user
 from fastapi.security import OAuth2PasswordRequestForm
-from dailydo.auth import authenticate_user, create_access_token, EXPIRY_TIME
+from dailydo.auth import authenticate_user, create_access_token, EXPIRY_TIME, current_user
 from datetime import timedelta
 
 
@@ -60,33 +60,47 @@ async def login(form_data:Annotated[OAuth2PasswordRequestForm, Depends()],
 
 
 @app.post("/todos/", response_model=Todo) # response_model is to use this as data model
-async def create_todo(todo:Todo, session:Annotated[Session, Depends(get_session)]):
-    session.add(todo)
+async def create_todo(current_user:Annotated[User, Depends(current_user)],
+                      todo:Todo_Create,
+                      session:Annotated[Session, Depends(get_session)]):
+    new_todo = Todo(content=todo.content, user_id=current_user.id)
+    session.add(new_todo)
     session.commit()
-    session.refresh(todo)
-    return todo 
+    session.refresh(new_todo)
+    return new_todo 
 
 @app.get("/todos/", response_model= list[Todo])
-async def get_all(session:Annotated[Session, Depends(get_session)]):
+async def get_all(current_user:Annotated[User, Depends(current_user)],
+                  session:Annotated[Session, Depends(get_session)]):
     # statement = select(Todo)
-    todos = session.exec(select(Todo)).all()
+    todos = session.exec(select(Todo).where(Todo.user_id==current_user.id)).all()
     if todos:
         return todos
     else:
         raise HTTPException (status_code=404, detail="No task found")
 
 @app.get("/todos/{id}", response_model=Todo)
-async def get_single_todo(id:int, session:Annotated[Session, Depends(get_session)]):
-    todo = session.exec(select(Todo).where(Todo.id==id)).first()
-    if todo:
-        return todo
+async def get_single_todo(id:int,
+                          current_user:Annotated[User, Depends(current_user)],
+                          session:Annotated[Session, Depends(get_session)]):
+    
+    user_todos = session.exec(select(Todo).where(Todo.user_id==current_user.id)).all()
+    matched_todo = next((todo for todo in user_todos if todo.id == id),None)
+    
+    if matched_todo:
+        return matched_todo
     else:
         raise HTTPException (status_code=404, detail="No task found")
 
 
 @app.put("/todos/{id}")
-async def edit_todo(id:int, todo:Todo, session:Annotated[Session, Depends(get_session)]):
-    existing_todo = session.exec(select(Todo).where(Todo.id==id)).first()
+async def edit_todo(id:int, 
+                    todo:Todo_Edit,
+                    current_user:Annotated[User, Depends(current_user)],
+                    session:Annotated[Session, Depends(get_session)]):
+    user_todos = session.exec(select(Todo).where(Todo.user_id==current_user.id)).all()
+    existing_todo = next((todo for todo in user_todos if todo.id == id),None)
+        
     if existing_todo:
         existing_todo.content = todo.content
         existing_todo.is_completed = todo.is_completed
@@ -98,8 +112,12 @@ async def edit_todo(id:int, todo:Todo, session:Annotated[Session, Depends(get_se
         raise HTTPException(status_code=404, detail="No task found")
 
 @app.delete("/todos/{id}")
-async def delete_todo(id:int, session:Annotated[Session, Depends(get_session)]):
-    todo = session.exec(select(Todo).where(Todo.id==id)).first()
+async def delete_todo(id:int,
+                      current_user:Annotated[User, Depends(current_user)],
+                      session:Annotated[Session, Depends(get_session)]):
+    user_todos = session.exec(select(Todo).where(Todo.user_id==current_user.id)).all()
+    todo = next((todo for todo in user_todos if todo.id == id),None)
+    
     if todo:
         session.delete(todo)
         session.commit()
