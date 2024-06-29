@@ -1,0 +1,22 @@
+version: "1.0.0"
+
+name: mydoapp
+
+services:
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    container_name: dailydocontainer
+    ports:
+      - "8000:8000"  # Expose container port 8000 to host port 8000  
+    networks:
+      - my-api-net
+
+    environment:
+      - DATABASE_URL = postgresql://Invoice_owner:rwGHV4iF3atE@ep-small-firefly-a1opfutt-pooler.ap-southeast-1.aws.neon.tech/dotask?sslmode=require
+
+      - TEST_DATABASE_URL = postgresql://Invoice_owner:rwGHV4iF3atE@ep-restless-salad-a1w65gfy-pooler.ap-southeast-1.aws.neon.tech/dotask?sslmode=require 
+
+networks:
+  my-api-net:  # Define the custom network

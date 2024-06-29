@@ -20,7 +20,7 @@ from dailydo.db import create_tables, get_session
 from dailydo.models import Todo, Token, User, Todo_Create, Todo_Edit
 from dailydo.router import user
 from fastapi.security import OAuth2PasswordRequestForm
-from dailydo.auth import authenticate_user, create_access_token, EXPIRY_TIME, current_user, create_access_token, create_refresh_token
+from dailydo.auth import authenticate_user, create_access_token, EXPIRY_TIME, current_user, create_access_token, create_refresh_token, validate_refresh_token
 from datetime import timedelta
 
 @asynccontextmanager # by using this it's means when our app run this will execute first before any thing
