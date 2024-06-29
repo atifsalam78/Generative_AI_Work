@@ -23,7 +23,7 @@ My Daily To Do App is a web-based application designed to help users manage thei
 
 ### 2. Navigate to the project directory
 
-`cd my-daily-to-do-app`
+`cd dailydo app`
 
 ### 3. Run the application
 
