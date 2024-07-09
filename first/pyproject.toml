@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "first"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pytest = "^8.2.0"
+fastapi = "^0.111.0"
+sqlmodel = "^0.0.19"
+python-dotenv = "^1.0.1"
+psycopg2 = "^2.9.9"
+mypy = "^1.10.0"
+sqlalchemy = "^2.0.30"
+python-jose = "^3.3.0"
+passlib = "^1.7.4"
+pytz = "^2024.1"
+jwt = "^1.3.1"
+fastapi-bearer-auth = "^0.1.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
